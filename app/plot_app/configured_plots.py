@@ -287,7 +287,38 @@ def generate_plots(ulog, px4_ulog, db_data, vehicle_data, link_to_3d_page,
         if data_plot.finalize() is not None: plots.append(data_plot)
 
 
+    # ESC RPM
+    data_plot = DataPlot(data, plot_config, 'esc_status',
+                         y_axis_label = '[RPM]', title = 'ESC RPM', plot_height = 'normal')
+    data_plot.add_graph(['esc[0].esc_rpm', 'esc[1].esc_rpm', 'esc[2].esc_rpm', 'esc[3].esc_rpm'],
+                    colors8[0:4], ['rpm0', 'rpm1', 'rpm2', 'rpm3'], use_downsample=False)
+    data_plot.add_graph(['esc[0].esc_setpoint', 'esc[1].esc_setpoint', 'esc[2].esc_setpoint', 'esc[3].esc_setpoint'],
+                       colors8[4:8], ['setpoint0', 'setpoint1', 'setpoint2', 'setpoint3'], use_downsample=False)
+    plot_flight_modes_background(data_plot, flight_mode_changes, vtol_states)
+    
+    if data_plot.finalize() is not None: plots.append(data_plot)
+    
+    
+    # ESC Current
+    data_plot = DataPlot(data, plot_config, 'esc_status',
+                         y_axis_label = '[Current]', title = 'ESC Current', plot_height = 'normal')
+    data_plot.add_graph(['esc[0].esc_current', 'esc[1].esc_current', 'esc[2].esc_current', 'esc[3].esc_current'],
+                    colors8[0:4], ['motor0', 'motor1', 'motor2', 'motor3'], use_downsample=False)
+    plot_flight_modes_background(data_plot, flight_mode_changes, vtol_states)
 
+    if data_plot.finalize() is not None: plots.append(data_plot)
+    
+    
+    # ESC State
+    data_plot = DataPlot(data, plot_config, 'esc_status',
+                         y_axis_label = '[State]', title = 'ESC State', plot_height = 'normal')
+    data_plot.add_graph(['esc[0].esc_state', 'esc[1].esc_state', 'esc[2].esc_state', 'esc[3].esc_state'],
+                    colors8[0:4], ['motor0', 'motor1', 'motor2', 'motor3'], use_downsample=False)
+    plot_flight_modes_background(data_plot, flight_mode_changes, vtol_states)
+
+    if data_plot.finalize() is not None: plots.append(data_plot)
+    
+    
     # Velocity
     data_plot = DataPlot(data, plot_config, 'vehicle_local_position',
                          y_axis_label='[m/s]', title='Velocity',
@@ -301,7 +332,7 @@ def generate_plots(ulog, px4_ulog, db_data, vehicle_data, link_to_3d_page,
 
     if data_plot.finalize() is not None: plots.append(data_plot)
 
-
+    
     # Visual Odometry (only if topic found)
     if any(elem.name == 'vehicle_visual_odometry' for elem in data):
         # Vision position
