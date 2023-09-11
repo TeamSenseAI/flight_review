@@ -25,7 +25,7 @@ from vtol_tailsitter import *
 
 
 def generate_plots(ulog, px4_ulog, db_data, vehicle_data, link_to_3d_page,
-                   link_to_pid_analysis_page):
+                   link_to_pid_analysis_page, link_to_yellowjacket_page):
     """ create a list of bokeh plots (and widgets) to show """
 
     plots = []
@@ -121,7 +121,7 @@ def generate_plots(ulog, px4_ulog, db_data, vehicle_data, link_to_3d_page,
     # Heading
     curdoc().template_variables['title_html'] = get_heading_html(
         ulog, px4_ulog, db_data, link_to_3d_page,
-        additional_links=[("Open PID Analysis", link_to_pid_analysis_page)])
+        additional_links=[("Open PID Analysis", link_to_pid_analysis_page), ("Yellowjacket Specific", link_to_yellowjacket_page)])
 
     # info text on top (logging duration, max speed, ...)
     curdoc().template_variables['info_table_html'] = \
@@ -197,6 +197,26 @@ def generate_plots(ulog, px4_ulog, db_data, vehicle_data, link_to_3d_page,
 
     if data_plot.finalize() is not None: plots.append(data_plot)
 
+    # Additional Altitude Sources
+    data_plot = DataPlot(data, plot_config, 'distance_sensor',
+                         y_axis_label = '[m]', title = 'Altitudes',
+                         changed_params=changed_params, x_range=x_range)
+    data_plot.add_graph(['current_distance'], ['#ae1717'], ['dist_sensor'])
+    data_plot.change_dataset(baro_alt_meter_topic)
+    data_plot.add_graph(['baro_alt_meter'], ['#03cafc'], ['baro'])
+    data_plot.change_dataset('estimator_local_position')
+    data_plot.add_graph([lambda data: ('z', data['z']*-1.0), 'dist_bottom'], ['#90fc03','#03fc4e'], ['estimator_z', 'estimator_dist_bottom'])
+    data_plot.change_dataset('vehicle_local_position')
+    data_plot.add_graph([lambda data: ('z', data['z']*-1.0)], ['#fce303'], ['local_pos_z'])
+    data_plot.change_dataset('vehicle_local_position_setpoint')
+    data_plot.add_graph([lambda data: ('z', data['z']*-1.0)], ['#fc03f8'], ['local_pos_setpoint_z'])
+    data_plot.change_dataset('vehicle_visual_odometry')
+    data_plot.add_graph([lambda data: ('z', data['z']*-1.0)], ['#fc5603'], ['visual_z'])
+    plot_flight_modes_background(data_plot, flight_mode_changes, vtol_states)
+    
+
+    if data_plot.finalize() is not None: plots.append(data_plot)
+    
     # VTOL tailistter orientation conversion, if relevant
     if is_vtol_tailsitter:
         [tailsitter_attitude, tailsitter_rates] = tailsitter_orientation(ulog, vtol_states)
@@ -300,7 +320,6 @@ def generate_plots(ulog, px4_ulog, db_data, vehicle_data, link_to_3d_page,
     plot_flight_modes_background(data_plot, flight_mode_changes, vtol_states)
 
     if data_plot.finalize() is not None: plots.append(data_plot)
-
 
     # Visual Odometry (only if topic found)
     if any(elem.name == 'vehicle_visual_odometry' for elem in data):
