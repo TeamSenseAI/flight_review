@@ -311,7 +311,8 @@ def load_ulog_file(file_name):
                   'ekf2_timestamps', 'manual_control_switches', 'event',
                   'vehicle_imu_status', 'actuator_motors', 'actuator_servos',
                   'vehicle_thrust_setpoint', 'vehicle_torque_setpoint',
-                  'failsafe_flags', 'estimator_local_position']
+                  'failsafe_flags', 'estimator_local_position', 'estimator_optical_flow_vel',
+                  'vehicle_visual_odometry_extended', 'estimator_event_flags', 'optical_flow']
     try:
         ulog = ULog(file_name, msg_filter, disable_str_exceptions=False)
     except FileNotFoundError:

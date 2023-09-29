@@ -117,20 +117,115 @@ This page shows custom graphs generated for the DarkHive Yellowjacket platform.
 
     if data_plot.finalize() is not None: plots.append(data_plot)
     
-    # X&Y Velocities
-    data_plot = DataPlot(data, plot_config, 'distance_sensor',
-                         y_axis_label = '[m]', title = 'Altitudes',
+    # X&Y Velocities    
+    data_plot = DataPlot(data, plot_config, 'estimator_local_position',
+                         y_axis_label = '[m]', title = 'X&Y Velocities',
                          changed_params=changed_params, x_range=x_range)
-    data_plot.add_graph(['current_distance'], ['#ae1717'], ['dist_sensor'])
-    data_plot.change_dataset(baro_alt_meter_topic)
+    data_plot.add_graph(['vx', 'vy', 'vxy_reset_counter'], colors3, ['local_pos_vx', 'local_pos_vy', 'vxy_reset'])
+    data_plot.change_dataset('estimator_optical_flow_vel')
+    data_plot.add_graph(['vel_ne[0]', 'vel_ne[1]'], ['#03cafc', '#ca03fc'], ['flow_ne_x', 'flow_ne_y'])
+    plot_flight_modes_background(data_plot, flight_mode_changes)
+    
+    if data_plot.finalize() is not None: plots.append(data_plot)
     
     # Extended VIO message
+    data_plot = DataPlot(data, plot_config, 'vehicle_visual_odometry_extended',
+                         y_axis_label = '', title = 'VIO Extended',
+                         changed_params=changed_params, x_range=x_range)
+    data_plot.add_graph(['state', 'n_total_features', 'error_code'], colors3, ['state', 'n_features', 'err_code'])
+    data_plot.change_dataset('vehicle_visual_odometry')
+    data_plot.add_graph(['quality'], ['#03cafc'], ['quality'])
+    plot_flight_modes_background(data_plot, flight_mode_changes)
     
-    # VIO quality and number of features
+    if data_plot.finalize() is not None: plots.append(data_plot)
     
     # Optical Flow and Body Velocity
     
+    data_plot = DataPlot(data, plot_config, 'optical_flow',
+                         y_axis_label = '', title = 'Optical Flow',
+                         changed_params=changed_params, x_range=x_range)
+    data_plot.add_graph(['quality', 'mode', 'ground_distance_m'], colors3, ['qualilty', 'mode', 'ground distance'])
+    plot_flight_modes_background(data_plot, flight_mode_changes)
     
+    if data_plot.finalize() is not None: plots.append(data_plot)
+    
+    # Estimator Warning Events
+    try:
+        data_plot = DataPlot(data, plot_config, 'estimator_event_flags',
+                             y_start=0, title='Estimator Warning Events',
+                             plot_height='small', changed_params=changed_params,
+                             x_range=x_range)
+        estimator_event_flags = ulog.get_dataset('estimator_event_flags').data
+        plot_data = []
+        plot_labels = []
+        input_data = [
+            ('Warning Events', estimator_event_flags['warning_event_changes']),
+            ('Hgt sensor timeout', estimator_event_flags['height_sensor_timeout']),
+            ('Stopping Navigation', (estimator_event_flags['stopping_navigation'])),
+            ('Reset Accel Bias', (estimator_event_flags['invalid_accel_bias_cov_reset'])),
+            ('Stopping Mag Use', (estimator_event_flags['stopping_mag_use'])),
+            ('Vision Data Stopped', (estimator_event_flags['vision_data_stopped'])),
+            ('Yaw Reset (Mag Stopped)', (estimator_event_flags['emergency_yaw_reset_mag_stopped']))
+            ]
+        # filter: show only the flags that have non-zero samples
+        for cur_label, cur_data in input_data:
+            if np.amax(cur_data) > 0.1:
+                data_label = 'flags_'+str(len(plot_data)) # just some unique string
+                plot_data.append(lambda d, data=cur_data, label=data_label: (label, data))
+                plot_labels.append(cur_label)
+                if len(plot_data) >= 8: # cannot add more than that
+                    break
+
+        if len(plot_data) == 0:
+            # add the plot even in the absence of any problem, so that the user
+            # can validate that (otherwise it's ambiguous: it could be that the
+            # estimator_event_flags topic is not logged)
+            plot_data = [lambda d: ('flags', input_data[0][1])]
+            plot_labels = [input_data[0][0]]
+        data_plot.add_graph(plot_data, colors8[0:len(plot_data)], plot_labels)
+        if data_plot.finalize() is not None: plots.append(data_plot)
+    except (KeyError, IndexError) as error:
+        print('Error in estimator plot: '+str(error))
+        
+    # Estimator Information Events
+    try:
+        data_plot = DataPlot(data, plot_config, 'estimator_event_flags',
+                             y_start=0, title='Estimator Information Events',
+                             plot_height='small', changed_params=changed_params,
+                             x_range=x_range)
+        estimator_event_flags = ulog.get_dataset('estimator_event_flags').data
+        plot_data = []
+        plot_labels = []
+        input_data = [
+            ('Information Events', estimator_event_flags['information_event_changes']),
+            ('Reset vel to flow', estimator_event_flags['reset_vel_to_flow']),
+            ('Reset vet to vision', (estimator_event_flags['reset_vel_to_vision'])),
+            ('Reset vel to zero', (estimator_event_flags['reset_vel_to_zero'])),
+            ('Reset pos to last known', (estimator_event_flags['reset_pos_to_last_known'])),
+            ('Reset pos to vision', (estimator_event_flags['reset_pos_to_vision'])),
+            ('Starting vision pos fusion', (estimator_event_flags['starting_vision_pos_fusion'])),
+            ('Starting vision vel fusion', (estimator_event_flags['starting_vision_vel_fusion'])),
+            ('Starting vision yaw fusion', (estimator_event_flags['starting_vision_yaw_fusion']))
+            ]
+        # filter: show only the flags that have non-zero samples
+        for cur_label, cur_data in input_data:
+            if np.amax(cur_data) > 0.1:
+                data_label = 'flags_'+str(len(plot_data)) # just some unique string
+                plot_data.append(lambda d, data=cur_data, label=data_label: (label, data))
+                plot_labels.append(cur_label)
+                if len(plot_data) >= 8: # cannot add more than that
+                    break
+
+        if len(plot_data) == 0:
+            # add the plot even in the absence of any problem, so that the user
+            # can validate that (otherwise it's ambiguous: it could be that the
+            # estimator_event_flags topic is not logged)
+            plot_data = [lambda d: ('flags', input_data[0][1])]
+            plot_labels = [input_data[0][0]]
+        data_plot.add_graph(plot_data, colors8[0:len(plot_data)], plot_labels)
+        if data_plot.finalize() is not None: plots.append(data_plot)
+    except (KeyError, IndexError) as error:
+        print('Error in estimator plot: '+str(error))
     
     # exchange all DataPlot's with the bokeh_plot and handle parameter changes
 
